@@ -23,17 +23,22 @@ cd orgchat-backend
 2. Build and start the services:
 ```bash
 # start the database contianer
-docker-compose up -d db -d api
+docker-compose up -d db
 
 # Run SQL script directly on the database container
 docker-compose exec db psql -U postgres -f /docker-entrypoint-initdb.d/init_db.sql
-```
 
-# Use SQL initialization (requires psql in the container)
+
+# Start the API service in detached mode
+docker-compose up -d api
+
+# Initialize the database schema and seed data using the API container
 docker-compose exec api python setup_database.py --sql-init
 
+# Rebuild all services and start them in interactive mode (shows logs in terminal)
 docker-compose up --build
 ```
+
 
 The API will be available at `http://localhost:8000`
 
