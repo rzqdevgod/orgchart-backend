@@ -17,7 +17,7 @@ class Employee(Base):
     name = Column(String, nullable=False)
     title = Column(String, nullable=False)
     org_id = Column(Integer, ForeignKey("org_charts.id", ondelete="CASCADE"), nullable=False)
-    manager_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    manager_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
 
     org_chart = relationship("OrgChart", back_populates="employees")
     manager = relationship("Employee", remote_side=[id], backref="direct_reports")
@@ -26,4 +26,4 @@ class Employee(Base):
     __table_args__ = (
         Index('ix_employees_org_id', 'org_id'),
         Index('ix_employees_manager_id', 'manager_id'),
-    ) 
+    )

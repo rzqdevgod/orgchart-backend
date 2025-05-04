@@ -35,4 +35,7 @@ class EmployeeWithReports(Employee):
         from_attributes = True
 
 class EmployeePromote(BaseModel):
-    new_ceo_id: int 
+    new_ceo_id: int
+
+class AssignManagerRequest(BaseModel):
+    employee_ids: List[int] 
