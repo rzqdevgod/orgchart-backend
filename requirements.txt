@@ -6,3 +6,7 @@ alembic
 python-dotenv 
 pydantic 
 pydantic-settings
+python-jose[cryptography]  # For JWT tokens
+passlib[bcrypt]  # For password hashing
+python-multipart  # For OAuth2 form handling
+email-validator  # For email validation
