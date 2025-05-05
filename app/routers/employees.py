@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app import models, schemas
 from app.database import get_db
+from app.auth import get_optional_current_user, has_permission
 
 router = APIRouter()
 
@@ -48,8 +49,14 @@ def would_create_cycle(db: Session, manager_id: int, subordinate_id: int, visite
     # Continue checking up the chain
     return would_create_cycle(db, manager.manager_id, subordinate_id, visited)
 
-@router.post("/", response_model=schemas.Employee)
-def create_employee(org_id: int, employee: schemas.EmployeeCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=schemas.Employee, dependencies=[Depends(has_permission(["create_employee"]))])
+def create_employee(
+    org_id: int, 
+    employee: schemas.EmployeeCreate, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
+):
+    """Create a new employee"""
     # Verify the organization exists
     check_org_exists(db, org_id)
     
@@ -70,19 +77,36 @@ def create_employee(org_id: int, employee: schemas.EmployeeCreate, db: Session =
     return db_employee
 
 @router.get("/", response_model=List[schemas.Employee])
-def list_employees(org_id: int, db: Session = Depends(get_db)):
+def list_employees(
+    org_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
+):
+    """List all employees in an organization"""
     employees = db.query(models.Employee).filter(models.Employee.org_id == org_id).all()
     return employees
 
 @router.get("/{employee_id}", response_model=schemas.Employee)
-def get_employee_by_id(org_id: int, employee_id: int, db: Session = Depends(get_db)):
+def get_employee_by_id(
+    org_id: int, 
+    employee_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
+):
+    """Get an employee by ID"""
     employee = get_employee(db, employee_id)
     if employee.org_id != org_id:
         raise HTTPException(status_code=400, detail="Employee does not belong to this organization")
     return employee
 
-@router.delete("/{employee_id}")
-def delete_employee(org_id: int, employee_id: int, db: Session = Depends(get_db)):
+@router.delete("/{employee_id}", dependencies=[Depends(has_permission(["delete_employee"]))])
+def delete_employee(
+    org_id: int, 
+    employee_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
+):
+    """Delete an employee"""
     employee = get_employee(db, employee_id)
     
     if employee.org_id != org_id:
@@ -123,8 +147,14 @@ def delete_employee(org_id: int, employee_id: int, db: Session = Depends(get_db)
     db.commit()
     return {"message": "Employee deleted successfully"}
 
-@router.put("/{employee_id}/promote", response_model=schemas.Employee)
-def promote_to_ceo(org_id: int, employee_id: int, db: Session = Depends(get_db)):
+@router.put("/{employee_id}/promote", response_model=schemas.Employee, dependencies=[Depends(has_permission(["promote_employee"]))])
+def promote_to_ceo(
+    org_id: int, 
+    employee_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
+):
+    """Promote an employee to CEO"""
     # Verify the organization exists
     check_org_exists(db, org_id)
     
@@ -171,7 +201,13 @@ def promote_to_ceo(org_id: int, employee_id: int, db: Session = Depends(get_db))
     return employee
 
 @router.get("/{employee_id}/direct_reports", response_model=List[schemas.Employee])
-def get_direct_reports(org_id: int, employee_id: int, db: Session = Depends(get_db)):
+def get_direct_reports(
+    org_id: int, 
+    employee_id: int, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
+):
+    """Get all direct reports for an employee"""
     employee = get_employee(db, employee_id)
     
     if employee.org_id != org_id:
@@ -185,8 +221,14 @@ def get_direct_reports(org_id: int, employee_id: int, db: Session = Depends(get_
     
     return direct_reports
 
-@router.put("/{employee_id}", response_model=schemas.Employee)
-def update_employee(org_id: int, employee_id: int, employee_update: schemas.EmployeeCreate, db: Session = Depends(get_db)):
+@router.put("/{employee_id}", response_model=schemas.Employee, dependencies=[Depends(has_permission(["update_employee"]))])
+def update_employee(
+    org_id: int, 
+    employee_id: int, 
+    employee_update: schemas.EmployeeCreate, 
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
+):
     """Update an employee's information"""
     # Verify the organization exists
     check_org_exists(db, org_id)
@@ -226,12 +268,13 @@ def update_employee(org_id: int, employee_id: int, employee_update: schemas.Empl
     db.refresh(db_employee)
     return db_employee
 
-@router.put("/{employee_id}/assign_as_manager", response_model=schemas.Employee)
+@router.put("/{employee_id}/assign_as_manager", response_model=schemas.Employee, dependencies=[Depends(has_permission(["assign_manager"]))])
 def assign_as_manager(
     org_id: int, 
     employee_id: int, 
     request: schemas.AssignManagerRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_optional_current_user)
 ):
     """Assign an employee as manager for a list of employees"""
     # Verify organization exists
